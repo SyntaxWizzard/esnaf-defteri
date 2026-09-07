@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { getProductStatus, getProductTimeline } from "@/lib/inventory/data";
 import { REASON_LABELS } from "@/lib/inventory/reason-labels";
-import { formatTL, formatNumber, formatDays } from "@/lib/format";
+import { formatNumber, formatDays } from "@/lib/format";
 import { StatusPill } from "@/components/ui/status-pill";
 import { AddToOrderButton } from "@/components/actions/add-to-order-button";
+import { PriceEditor } from "@/components/shelf/price-editor";
 
 function storyLine(p: NonNullable<Awaited<ReturnType<typeof getProductStatus>>>): string {
   if (p.status === "dead") {
@@ -38,9 +39,7 @@ export default async function ProductStoryPage({ params }: { params: Promise<{ i
           <span className="tabular font-mono text-4xl font-semibold text-ink">{formatNumber(p.currentStock)}</span>
           <span className="text-ink-soft">{p.unit} kaldı</span>
         </div>
-        <p className="mt-1 text-sm text-ink-faint">
-          {formatTL(p.salePrice)} satış · {formatTL(p.costPrice)} alış · rafta {formatTL(p.capitalAtRest)}
-        </p>
+        <PriceEditor productId={p.id} salePrice={p.salePrice} costPrice={p.costPrice} capitalAtRest={p.capitalAtRest} />
       </section>
 
       <section className="grid grid-cols-3 gap-3 border-y border-line py-4 text-center">
