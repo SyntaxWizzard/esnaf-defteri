@@ -1,0 +1,176 @@
+// Esnaf Stok — veri modeli
+//
+// Stok miktarı hiçbir yerde doğrudan tutulmaz. Product.stock diye bir alan
+// yok: mevcut stok her zaman StockMovement toplamından türetilir (bkz.
+// src/lib/inventory/stock.ts). Bu sayede "geçen ay bu üründen neden 30 adet
+// eksildi" gibi sorulara her zaman cevap verilebilir — geçmiş asla kaybolmaz.
+//
+// Not: parasal alanlarda Float kullanıldı (demo verisi için yeterli) —
+// gerçek prod'da Decimal'e geçmek tek satırlık değişiklik.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id        String   @id @default(cuid())
+  name      String
+  kind      String // market, bakkal, butik, nalbur, telefoncu, kafe, pet shop, kırtasiye, yedek parça...
+  createdAt DateTime @default(now())
+
+  users      User[]
+  categories Category[]
+  products   Product[]
+  suppliers  Supplier[]
+  customers  Customer[]
+  sales      Sale[]
+  purchases  Purchase[]
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String
+  passwordHash String?
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model Category {
+  id         String    @id @default(cuid())
+  name       String
+  businessId String
+  business   Business  @relation(fields: [businessId], references: [id])
+  products   Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  barcode     String?  @unique
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id])
+
+  salePrice   Float // satış fiyatı
+  costPrice   Float // alış fiyatı (maliyet)
+  unit        String   @default("adet") // adet, kg, lt...
+
+  // "Normal günlük satış hızı" bu alandan değil hareket geçmişinden
+  // hesaplanır (bkz lib/inventory/velocity.ts). Burada tutulan sadece
+  // kullanıcının manuel belirlediği bir kritik eşik olabilir (opsiyonel).
+  reorderPoint Int?    // isteğe bağlı manuel "bu seviyenin altına düşerse uyar"
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  movements    StockMovement[]
+  saleItems    SaleItem[]
+  purchaseItems PurchaseItem[]
+
+  @@index([businessId])
+}
+
+// Tüm stok değişikliklerinin tek ve değişmez (immutable) kaynağı.
+// Asla update edilmez, sadece eklenir. Mevcut stok = sum(quantity).
+model StockMovement {
+  id         String   @id @default(cuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+
+  quantity   Int      // pozitif: giriş, negatif: çıkış
+  reason     StockMovementReason
+  note       String?
+
+  // Bu hareketi tetikleyen kayda opsiyonel referans (satış, alış, sayım vb.)
+  saleItemId     String?
+  saleItem       SaleItem? @relation(fields: [saleItemId], references: [id])
+  purchaseItemId String?
+  purchaseItem   PurchaseItem? @relation(fields: [purchaseItemId], references: [id])
+
+  createdAt  DateTime @default(now())
+
+  @@index([productId, createdAt])
+}
+
+enum StockMovementReason {
+  PURCHASE    // satın alma girişi
+  SALE        // satış çıkışı
+  DAMAGE      // hasar/fire
+  ADJUSTMENT  // sayım düzeltmesi
+  RETURN      // iade girişi
+  INITIAL     // açılış stoğu
+}
+
+model Supplier {
+  id         String   @id @default(cuid())
+  name       String
+  phone      String?
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  purchases  Purchase[]
+}
+
+model Purchase {
+  id         String   @id @default(cuid())
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  note       String?
+  createdAt  DateTime @default(now())
+
+  items PurchaseItem[]
+}
+
+model PurchaseItem {
+  id         String   @id @default(cuid())
+  purchaseId String
+  purchase   Purchase @relation(fields: [purchaseId], references: [id])
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Int
+  unitCost   Float
+
+  movements StockMovement[]
+}
+
+model Customer {
+  id         String   @id @default(cuid())
+  name       String
+  phone      String?
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  sales      Sale[]
+}
+
+model Sale {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  createdAt  DateTime @default(now())
+
+  items SaleItem[]
+}
+
+model SaleItem {
+  id         String   @id @default(cuid())
+  saleId     String
+  sale       Sale     @relation(fields: [saleId], references: [id])
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Int
+  unitPrice  Float // satış anındaki fiyat (Product.salePrice değişse de tarih değişmez)
+  unitCost   Float // satış anındaki maliyet (kâr hesaplaması için)
+
+  movements StockMovement[]
+}

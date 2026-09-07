@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+/*
+ * Tasarım dili: "dijitalleşmiş esnaf defteri".
+ * Kağıt/kraft tonları, fiş kesik çizgileri, raf etiketi tipografisi.
+ * Klasik SaaS dashboard'larının mor/lacivert gradient dünyasından bilinçli
+ * olarak uzak durulmuştur — bkz. proje notları.
+ *
+ * Renklerin anlamı var, dekorasyon değil:
+ *   kırmızı  = acil aksiyon gerekiyor (bugün/yarın biter)
+ *   turuncu  = dikkat (hızlanıyor ya da fazla sermaye bağlı)
+ *   yeşil    = normal / iyi
+ *   mavi     = bilgi
+ *   gri      = nötr
+ */
+
+:root {
+  --paper: #faf7f0;
+  --paper-raised: #ffffff;
+  --ink: #24201a;
+  --ink-soft: #6b6255;
+  --ink-faint: #9a9080;
+  --line: #e4ddcc;
+  --line-strong: #d3c9b3;
+
+  --urgent: #b8402a;
+  --urgent-bg: #fbeae5;
+  --attention: #b5730f;
+  --attention-bg: #fbf0dd;
+  --good: #2f6b46;
+  --good-bg: #e9f2e9;
+  --info: #2b5a8c;
+  --info-bg: #e8f0f8;
+  --neutral: #6b6255;
+  --neutral-bg: #efeae0;
+
+  --stamp: #24201a;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-urgent: var(--urgent);
+  --color-urgent-bg: var(--urgent-bg);
+  --color-attention: var(--attention);
+  --color-attention-bg: var(--attention-bg);
+  --color-good: var(--good);
+  --color-good-bg: var(--good-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-neutral: var(--neutral);
+  --color-neutral-bg: var(--neutral-bg);
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-heading);
+  --font-mono: var(--font-numbers);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Fiş / makbuz kesik çizgisi — StockTimeline ve OrderList'te kullanılıyor */
+.torn-edge {
+  background-image: radial-gradient(circle at 6px 6px, var(--paper) 6px, transparent 6.5px);
+  background-size: 14px 14px;
+  background-position: -3px -7px;
+  background-repeat: repeat-x;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line-strong);
+  background: var(--paper-raised);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--ink-faint);
+}
+
+@media print {
+  .no-print {
+    display: none;
+  }
+}
