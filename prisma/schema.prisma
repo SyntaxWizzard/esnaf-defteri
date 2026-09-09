@@ -74,8 +74,39 @@ model Product {
   movements    StockMovement[]
   saleItems    SaleItem[]
   purchaseItems PurchaseItem[]
+  priceChanges  PriceChange[]
 
   @@index([businessId])
+}
+
+// Fiyat hiçbir yerde sessizce değişmiyor: her satış/alış fiyatı güncellemesi
+// burada immutable bir kayıt bırakıyor. "Fiyat Değişimleri" ekranı ve
+// eski/yeni fiyat karşılaştırma hesapları buradan besleniyor.
+model PriceChange {
+  id         String   @id @default(cuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+
+  field      PriceField
+  oldValue   Float
+  newValue   Float
+
+  source     PriceChangeSource @default(MANUAL)
+  purchaseId String? // source=PURCHASE ise: tedarikçiden farklı maliyetle gelen sipariş
+
+  changedAt  DateTime @default(now())
+
+  @@index([productId, field, changedAt])
+}
+
+enum PriceField {
+  SALE_PRICE
+  COST_PRICE
+}
+
+enum PriceChangeSource {
+  MANUAL    // esnaf ürün sayfasından elle değiştirdi
+  PURCHASE  // tedarikçi siparişi farklı maliyetle geldi
 }
 
 // Tüm stok değişikliklerinin tek ve değişmez (immutable) kaynağı.

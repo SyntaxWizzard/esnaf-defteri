@@ -29,15 +29,6 @@ Prisma şeması `provider = "postgresql"` — gerçek bir Postgres sunucusuna ka
 `DATABASE_URL`'i kendi Postgres bağlantınızla doldurmanız yeterli
 (`postgresql://KULLANICI:SIFRE@HOST:5432/VERITABANI`).
 
-### AI
-
-`ANTHROPIC_API_KEY` boşsa uygulama tamamen çalışır — "Sor" ekranındaki doğal
-dil sorguları önce deterministik kalıp eşleştirmeyle (bkz.
-`src/lib/ai/natural-language-query.ts`) cevaplanır, eşleşmezse nazik bir
-"daha net sorar mısın" cevabı döner. Anahtar girilirse aynı ekran (ve "Bu
-hafta neye dikkat etmeliyim?" özeti) Claude ile zenginleşir. AI hiçbir yerde
-UI'a doğrudan bağlı değil — tüm çağrılar `src/lib/ai/` altından geçer.
-
 ## Tasarım kararları (özet)
 
 - **Ana ekran "Bugün"**, dashboard değil. Esnaf stok listesini incelemek
@@ -49,6 +40,11 @@ UI'a doğrudan bağlı değil — tüm çağrılar `src/lib/ai/` altından geçe
   SALE / DAMAGE / ADJUSTMENT / RETURN / INITIAL) event log'unun toplamından
   türetiliyor (`src/lib/inventory/stock.ts`). "Geçen ay bu üründen neden 30
   adet eksildi?" sorusuna her zaman cevap verilebiliyor.
+- **Fiyat değişimleri de aynı şekilde immutable loglanıyor** (`PriceChange`
+  modeli) — bir ürünün satış/maliyet fiyatı her değiştiğinde eski/yeni değer,
+  tarih ve kaynak (elle düzenleme ya da tedarikçi siparişi) kalıcı olarak
+  kaydediliyor; "Fiyat Değişimleri" ekranı bunun üzerinden ciro/kâr etkisini
+  hesaplıyor.
 - **Raf görünümü** ürünleri tablo değil, satış hızını yatay bir çubukla
   anlatan satırlar olarak gösteriyor — hem mobilde hem masaüstünde (masaüstü
   ekstra genişliği çok sütunlu bir raf'a çeviriyor, tek sütunu germiyor).
@@ -58,8 +54,9 @@ UI'a doğrudan bağlı değil — tüm çağrılar `src/lib/ai/` altından geçe
   kasıtlı olarak yok.
 - **Renk = anlam.** Kırmızı: acil aksiyon, turuncu: dikkat, yeşil: normal,
   mavi: bilgi, gri: nötr. Tek bir vurgu rengi baskın değil.
-- **Mobil öncelik.** Alt sekme çubuğu (Bugün / Ürünler / Satış / Sipariş),
-  tek elle kullanılabilir büyük dokunma alanları, az modal, az input.
+- **Mobil öncelik.** Alt sekme çubuğu (Bugün / Ürünler / Satış / Sipariş /
+  Fiyatlar), tek elle kullanılabilir büyük dokunma alanları, az modal, az
+  input.
 
 ## Mimari
 
@@ -67,11 +64,13 @@ UI'a doğrudan bağlı değil — tüm çağrılar `src/lib/ai/` altından geçe
 prisma/schema.prisma      Event tabanlı stok modeli (StockMovement immutable)
 prisma/seed.ts             Gerçekçi demo veri + bilinçli senaryolar
                             (hızla tükenen ürün, 14/30/60+ gün ölü stok,
-                             yanlış sayım düzeltmesi, düşük/yüksek marj)
+                             yanlış sayım düzeltmesi, düşük/yüksek marj,
+                             geçmiş fiyat değişimleri)
 
 src/lib/inventory/         Domain mantığı — stok türetme, satış hızı,
                             "bugün" briefing'i, aksiyon listesi, ölü stok
-                            bucket'ları, doğal dil hızlı ürün ekleme parser'ı
+                            bucket'ları, fiyat değişimi finansal etki hesabı,
+                            doğal dil hızlı ürün ekleme parser'ı
 
 src/lib/ai/                provider.ts        Claude API abstraction (opsiyonel)
                             natural-language-query.ts  "Sor" ekranı

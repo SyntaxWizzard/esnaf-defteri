@@ -15,6 +15,7 @@ type OrderDraftState = {
   lines: OrderDraftLine[];
   addOrIncrease: (line: Omit<OrderDraftLine, "quantity">, qty: number) => void;
   setQuantity: (productId: string, qty: number) => void;
+  setCostPrice: (productId: string, costPrice: number) => void;
   remove: (productId: string) => void;
   clear: () => void;
 };
@@ -40,6 +41,10 @@ export const useOrderDraft = create<OrderDraftState>()(
           lines: qty <= 0
             ? state.lines.filter((l) => l.productId !== productId)
             : state.lines.map((l) => (l.productId === productId ? { ...l, quantity: qty } : l)),
+        })),
+      setCostPrice: (productId, costPrice) =>
+        set((state) => ({
+          lines: state.lines.map((l) => (l.productId === productId ? { ...l, costPrice } : l)),
         })),
       remove: (productId) => set((state) => ({ lines: state.lines.filter((l) => l.productId !== productId) })),
       clear: () => set({ lines: [] }),

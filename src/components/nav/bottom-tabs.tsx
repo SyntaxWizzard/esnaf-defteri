@@ -9,6 +9,7 @@ const TABS = [
   { href: "/urunler", label: "Ürünler", icon: ShelfIcon },
   { href: "/satis", label: "Satış", icon: TagIcon },
   { href: "/siparis", label: "Sipariş", icon: BoxIcon },
+  { href: "/fiyat-degisimleri", label: "Fiyatlar", icon: PriceChangeIcon },
 ];
 
 export function BottomTabs() {
@@ -68,6 +69,14 @@ function BoxIcon({ active }: { active: boolean }) {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.6}>
       <path d="M21 8 12 3 3 8v8l9 5 9-5V8Z" />
       <path d="M3 8l9 5 9-5M12 13v8" />
+    </svg>
+  );
+}
+function PriceChangeIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.6}>
+      <path d="M3 17l6-6 4 4 8-8" />
+      <path d="M15 7h6v6" />
     </svg>
   );
 }

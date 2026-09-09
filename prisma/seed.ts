@@ -1,4 +1,4 @@
-import { PrismaClient, StockMovementReason } from "@prisma/client";
+import { PrismaClient, StockMovementReason, PriceField, PriceChangeSource } from "@prisma/client";
 import { startOfDay, subDays } from "date-fns";
 
 const prisma = new PrismaClient();
@@ -124,6 +124,7 @@ function buildProductCatalog(): ProductSeed[] {
 
 async function main() {
   console.log("Mevcut veriler temizleniyor...");
+  await prisma.priceChange.deleteMany();
   await prisma.stockMovement.deleteMany();
   await prisma.saleItem.deleteMany();
   await prisma.sale.deleteMany();
@@ -201,6 +202,7 @@ async function main() {
     // planlanır (aşağıda) — böylece stok hiçbir zaman eksiye düşmez: her
     // satış o anki gerçek mevcut stokla sınırlıdır.
     let nextPurchaseAt = HISTORY_DAYS - randInt(8, 14);
+    let lastPurchaseId: string | null = null;
 
     // Kronolojik simülasyon (en eski günden bugüne): her gün önce planlanmış
     // bir satın alma varsa stoğa eklenir, sonra o günün satışı işlenir.
@@ -231,6 +233,7 @@ async function main() {
         runningStock += qty;
         totalMovements++;
         nextPurchaseAt = d - randInt(10, 14);
+        lastPurchaseId = purchase.id;
       }
 
       if (spec.archetype === "wrong_count" && d === 6 && runningStock > 0) {
@@ -282,6 +285,44 @@ async function main() {
       });
       runningStock -= qtySold;
       totalSales++;
+      totalMovements++;
+    }
+
+    // Demo amaçlı fiyat değişimi geçmişi: satışlar zaten mevcut (güncel)
+    // fiyattan işlendiği için burada sadece "eski değer" uyduruyoruz ve
+    // newValue'yu ürünün şu anki fiyatına eşitliyoruz — böylece Fiyat
+    // Değişimleri ekranındaki "bu tarihten sonraki satışlar" hesabı gerçek
+    // SaleItem kayıtlarıyla tutarlı kalıyor.
+    if (rand() < 0.4) {
+      const changedAt = subDays(TODAY, randInt(2, 12));
+      const oldSale = Math.round(spec.salePrice * (rand() < 0.5 ? 0.82 + rand() * 0.1 : 1.08 + rand() * 0.12));
+      await prisma.priceChange.create({
+        data: {
+          productId: product.id,
+          field: PriceField.SALE_PRICE,
+          oldValue: oldSale,
+          newValue: spec.salePrice,
+          source: PriceChangeSource.MANUAL,
+          changedAt,
+        },
+      });
+      totalMovements++;
+    }
+    if (rand() < 0.3) {
+      const changedAt = subDays(TODAY, randInt(2, 12));
+      const oldCost = Math.round(spec.costPrice * (rand() < 0.5 ? 0.85 + rand() * 0.08 : 1.06 + rand() * 0.1));
+      const usePurchase = lastPurchaseId && rand() < 0.5;
+      await prisma.priceChange.create({
+        data: {
+          productId: product.id,
+          field: PriceField.COST_PRICE,
+          oldValue: oldCost,
+          newValue: spec.costPrice,
+          source: usePurchase ? PriceChangeSource.PURCHASE : PriceChangeSource.MANUAL,
+          purchaseId: usePurchase ? lastPurchaseId : undefined,
+          changedAt,
+        },
+      });
       totalMovements++;
     }
   }
